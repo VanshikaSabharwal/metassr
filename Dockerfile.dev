@@ -27,7 +27,7 @@ RUN wget -O - https://raw.githubusercontent.com/metacall/install/master/install.
 COPY . .
 
 # Build with debug mode
-RUN cargo build --debug \
+RUN cargo build \
 	&& cd ./tests/web-app \
 	&& npm install \
 	&& npm run build
