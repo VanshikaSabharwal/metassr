@@ -50,7 +50,7 @@ RUN npm install \
 	&& ./tests/bundle.sh
 
 # Release image
-FROM base AS release
+FROM base AS build_release
 
 # Install MetaCall
 RUN wget -O - https://raw.githubusercontent.com/metacall/install/master/install.sh | bash
