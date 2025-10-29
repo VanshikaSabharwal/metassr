@@ -1,4 +1,4 @@
-name: Bundler Tests
+name: Integration Tests
 
 on:
   push:
@@ -32,7 +32,6 @@ jobs:
             
             # Copy the test script into the container and run it
             cp /root/tests/test-bundle.sh ./
-            chmod +x test-bundle.sh
             ./test-bundle.sh
           "
 

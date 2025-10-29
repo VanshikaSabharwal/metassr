@@ -10,7 +10,7 @@ LABEL copyright.name="Vicente Eduardo Ferrer Garcia" \
 
 # Install MetaCall dependencies
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 		ca-certificates \
         git \
 		wget \
@@ -30,4 +30,4 @@ COPY . .
 RUN cargo build \
 	&& cd ./tests/web-app \
 	&& npm install \
-	&& npm run build
+	&& npm run build:debug

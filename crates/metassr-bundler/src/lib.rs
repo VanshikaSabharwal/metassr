@@ -110,7 +110,10 @@ impl<'a> WebBundler<'a> {
         drop(guard);
 
         // Resolve callback when the bundling process is completed successfully
-        fn resolve(result: Box<dyn MetaCallValue>, _: Option<Box<dyn Any>>) -> Box<dyn MetaCallValue> {
+        fn resolve(
+            result: Box<dyn MetaCallValue>,
+            _: Option<Box<dyn Any>>
+        ) -> Box<dyn MetaCallValue> {
             let compilation_wait = &*Arc::clone(&IS_COMPILATION_WAIT);
             let mut started = compilation_wait.checker.lock().unwrap();
 
