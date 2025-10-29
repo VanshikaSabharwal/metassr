@@ -38,7 +38,7 @@ RUN cargo build
 FROM build_debug AS unit_test_debug
 
 # Run tests in debug mode
-RUN cargo test
+RUN cargo test --workspace --verbose
 
 # Integration test debug image
 FROM build_debug AS integration_test_debug
@@ -65,7 +65,7 @@ RUN cargo build --release
 FROM build_release AS unit_test_release
 
 # Run tests in release mode
-RUN cargo test --release
+RUN cargo test --workspace --verbose --release
 
 # Integration test release image
 FROM build_release AS integration_test_release

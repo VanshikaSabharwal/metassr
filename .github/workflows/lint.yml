@@ -44,5 +44,3 @@ jobs:
 
       - name: Spell Checking with Typos
         uses: crate-ci/typos@master
-        with:
-          files: ./*
