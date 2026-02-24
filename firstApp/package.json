@@ -1,0 +1,18 @@
+{
+  "name": "firstApp",
+  "version": "1.0.0",
+  "description": "A web application built with MetaSSR framework",
+  "scripts": {
+    "run": "metassr --debug-mode=http run",
+    "serve": "metassr --debug-mode=http run --serve",
+    "build:ssr": "metassr --debug-mode=metacall build -t ssr",
+    "build:ssg": "metassr --debug-mode=metacall build -t ssg"
+  },
+  "devDependencies": {
+    "@rspack/core": "1.5.5"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

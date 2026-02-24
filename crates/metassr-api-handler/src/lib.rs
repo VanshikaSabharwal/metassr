@@ -41,7 +41,6 @@ use metacall::{load, metacall};
 use scanner::{scan_api_dir, ApiRouteFile};
 use std::{
     collections::HashMap,
-    fs::read_to_string,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -58,6 +57,8 @@ pub struct ApiRoutes {
     loaded_scripts: HashMap<String, PathBuf>,
     /// List of discovered route files.
     routes: Vec<ApiRouteFile>,
+    /// Route handler mapping: "hello.GET" -> "/path/to/hello.js"
+    route_handlers: HashMap<String, String>,
 }
 
 impl ApiRoutes {
@@ -66,6 +67,7 @@ impl ApiRoutes {
         Self {
             loaded_scripts: HashMap::new(),
             routes: Vec::new(),
+            route_handlers: HashMap::new(),
         }
     }
 
@@ -98,39 +100,66 @@ impl ApiRoutes {
         Ok(())
     }
 
-    /// Load a single JavaScript file into MetaCall.
-    fn load_script(&mut self, file_path: &Path) -> Result<()> {
-        let code = read_to_string(file_path)?;
-        let path_str = file_path.to_string_lossy().to_string();
+    fn detect_runtime(path: &Path) -> Option<load::Tag> {
+        match path.extension().and_then(|e| e.to_str()) {
+            Some("js") => Some(load::Tag::NodeJS),
+            Some("ts") => Some(load::Tag::NodeJS),
+            Some("py") => Some(load::Tag::Python),
+            Some("rb") => Some(load::Tag::Ruby),
+            _ => None,
+        }
+    }
 
-        // NOTE: Using shared global MetaCall context.
-        // This is a testing behavior that might change to use a dedicated
-        // MetaCall runtime thread for better async handling and isolation.
-        // Passing None as handle to use the global context.
-        load::from_memory(load::Tag::NodeJS, &code, None)
+    /// Load a single script file into MetaCall.
+    fn load_script(&mut self, file_path: &Path) -> Result<()> {
+        let path_str = file_path.to_string_lossy().to_string();
+        let runtime = Self::detect_runtime(file_path)
+            .ok_or_else(|| anyhow!("Unsupported API language {:?}", file_path))?;
+
+        // from_file expects an iterator of paths — wrap in a slice
+        load::from_file(runtime, &[file_path], None)
             .map_err(|e| anyhow!("Failed to load script {:?}: {:?}", file_path, e))?;
 
-        self.loaded_scripts
-            .insert(path_str, file_path.to_path_buf());
+        let file_stem = file_path.file_stem().unwrap().to_string_lossy().to_string();
+
+        // Register GET and POST optimistically — metacall() will return an error at
+        // call time if the function isn't actually exported from the script.
+        for method in ["GET", "POST"] {
+            let qualified = format!("{}.{}", file_stem, method);
+            self.route_handlers.insert(qualified.clone(), path_str.clone());
+            info!("Registered handler: {}", qualified);
+        }
+
+        self.loaded_scripts.insert(path_str, file_path.to_path_buf());
         Ok(())
     }
 
     /// Call a handler function (GET, POST) on a loaded script.
-    /// The function name should match the HTTP method (GET, POST, etc.)
+    ///
+    /// MetaCall's NodeJS runtime exposes `module.exports` functions by their
+    /// bare name ("GET"), not the qualified name ("hello.GET"). So we look up
+    /// the handler in our map using the qualified key for namespacing, but
+    /// invoke MetaCall using only the bare method name.
     pub fn call_handler(
         &self,
-        _file_path: &str,
+        file_path: &str,
         method: &str,
         request: ApiRequest,
     ) -> Result<ApiResponse> {
         let request_json = serde_json::to_string(&request)?;
 
-        debug!("Calling {}() with request: {}", method, request_json);
+        let file_name = Path::new(file_path).file_stem().unwrap().to_string_lossy();
+        let function_name = format!("{}.{}", file_name, method);
 
-        // Call the handler function with the request JSON
-        // MetaCall looks up the function by name in all loaded scripts
+        if !self.route_handlers.contains_key(&function_name) {
+            return Err(anyhow!("Handler {} not registered", function_name));
+        }
+
+        debug!("Calling {} (as bare '{}') with request: {}", function_name, method, request_json);
+
+        // Call using bare method name — that's what MetaCall NodeJS runtime exposes
         let result: String = metacall(method, [request_json])
-            .map_err(|e| anyhow!("Failed to call {}: {:?}", method, e))?;
+            .map_err(|e| anyhow!("Failed to call {}: {:?}", function_name, e))?;
 
         let response: ApiResponse = serde_json::from_str(&result)
             .map_err(|e| anyhow!("Failed to parse response: {} (raw: {})", e, result))?;
@@ -197,7 +226,6 @@ pub fn register_api_routes(
         let file_path_clone = file_path.clone();
         let route_path_clone = route_path.clone();
 
-        // Create method router for GET and POST
         let method_router: MethodRouter = get({
             let api_routes = Arc::clone(&api_routes_clone);
             let file_path = file_path_clone.clone();
