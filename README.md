@@ -110,7 +110,7 @@ Build a production-ready Docker image using the release stage:
 docker build --build-arg APP_NAME=${name of app} -t metassr-debug .
 ```
 
-Example:-
+Example:
 ```sh
 docker build --build-arg APP_NAME=vis -t metassr-debug .
 ```
@@ -119,11 +119,7 @@ docker build --build-arg APP_NAME=vis -t metassr-debug .
 
 Run the container and verify everything works before deploying:
 
-```sh
-docker run -p 8080:8080 ${name of the app}
-```
-
-Example:-
+Example:
 ```sh
  docker run -p 8080:8080 metassr-debug
 ```
