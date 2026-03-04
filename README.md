@@ -89,7 +89,7 @@ Scaffold a new MetaSSR app and bundle its assets:
 
 ```sh
 metassr create ${name of the app}
-cd ${name of the app}s
+cd ${name of the app}
 npm install
 npm run build:ssr
 ```
@@ -117,13 +117,24 @@ docker build --build-arg APP_NAME=vis -t metassr-debug .
 
 #### 3. Test Locally
 
+Run the container and verify everything works before deploying:
+
+```sh
+docker run -p 8080:8080 ${name of the app}
+```
+
+Example:-
+```sh
+ docker run -p 8080:8080 metassr-debug
+```
+
 Visit [http://localhost:8080](http://localhost:8080) and check logs with:
 
 ```sh
 docker logs <container-id>
 ```
 
-#### 4. Verify & Monitor
+#### 5. Verify & Monitor
 
 - **Endpoint**: `GET /` should return server-side rendered content.
 - **Logging**: Set `RUST_LOG=info` in your environment for detailed logs.
