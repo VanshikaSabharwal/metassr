@@ -49,4 +49,7 @@ RUN npm install
 # Build the Application
 RUN npm run build:ssr
 
+#Exposing Port
+EXPOSE 8080
+
 CMD ["npm", "run", "run"]

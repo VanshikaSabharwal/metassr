@@ -117,24 +117,13 @@ docker build --build-arg APP_NAME=vis -t metassr-debug .
 
 #### 3. Test Locally
 
-Run the container and verify everything works before deploying:
-
-```sh
-docker run -p 8080:8080 ${name of the app}
-```
-
-Example:-
-```sh
- docker run -p 8080:8080 metassr-debug
-```
-
 Visit [http://localhost:8080](http://localhost:8080) and check logs with:
 
 ```sh
 docker logs <container-id>
 ```
 
-#### 5. Verify & Monitor
+#### 4. Verify & Monitor
 
 - **Endpoint**: `GET /` should return server-side rendered content.
 - **Logging**: Set `RUST_LOG=info` in your environment for detailed logs.
