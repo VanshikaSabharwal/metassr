@@ -128,20 +128,24 @@ impl Rebuilder {
                 };
             }
             RebuildType::Layout => {
-                // todo
+                // todo: implement granular layout rebuild
                 debug!("entered rebuilding {:?}", rebuild_type);
+                tracing::warn!("Layout rebuild is not yet implemented; skipping.");
             }
             RebuildType::Component => {
-                // todo
+                // todo: implement granular component rebuild
                 debug!("entered rebuilding {:?}", rebuild_type);
+                tracing::warn!("Component rebuild is not yet implemented; skipping.");
             }
             RebuildType::Style => {
-                // todo
+                // todo: implement granular style rebuild
                 debug!("entered rebuilding {:?}", rebuild_type);
+                tracing::warn!("Style rebuild is not yet implemented; skipping.");
             }
             RebuildType::Static => {
-                // todo
+                // todo: implement static asset rebuild
                 debug!("entered rebuilding {:?}", rebuild_type);
+                tracing::warn!("Static asset rebuild is not yet implemented; skipping.");
             }
         }
 
