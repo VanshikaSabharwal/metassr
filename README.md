@@ -76,66 +76,6 @@ docker run --rm -it metacall/metassr:dev bash
 
 This will automatically set up Rust, MetaCall, and all required dependencies in an isolated environment.
 
-## Deployment
-
-### Prerequisites
-- **Docker Installed**
-
-### Step-by-Step Deployment
-
-#### 1. Create & Build Your App
-
-Scaffold a new MetaSSR app and bundle its assets:
-
-```sh
-metassr create ${name of the app}
-cd ${name of the app}
-npm install
-npm run build:ssr
-```
-
-Example:-
-```sh
-metassr create vis
-cd vis
-npm install
-npm run build:ssr
-```
-
-#### 2. Build the Docker Image
-
-Build a production-ready Docker image using the release stage:
-
-```sh
-docker build --build-arg APP_NAME=${name of app} -t metassr-debug .
-```
-
-Example:
-```sh
-docker build --build-arg APP_NAME=vis -t metassr-debug .
-```
-
-#### 3. Test Locally
-
-Run the container and verify everything works before deploying:
-
-Example:
-```sh
- docker run -p 8080:8080 metassr-debug
-```
-
-Visit [http://localhost:8080](http://localhost:8080) and check logs with:
-
-```sh
-docker logs <container-id>
-```
-
-#### 5. Verify & Monitor
-
-- **Endpoint**: `GET /` should return server-side rendered content.
-- **Logging**: Set `RUST_LOG=info` in your environment for detailed logs.
-- **Scaling**: Add replicas via Docker Compose's `scale` option or a Kubernetes deployment.
-
 ## Code of Conduct
 
 To ensure a positive and inclusive environment, please review our [Code of Conduct](CODE_OF_CONDUCT.md).
