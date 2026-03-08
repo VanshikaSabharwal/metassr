@@ -7,3 +7,7 @@ description = "A simple library to generate html content with a simple way."
 
 [dependencies]
 anyhow = { version = "*" }
+scraper = "0.20"
+
+[dev-dependencies]
+scraper = "0.20"

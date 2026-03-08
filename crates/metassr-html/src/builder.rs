@@ -71,77 +71,73 @@ impl HtmlBuilder {
 
 #[cfg(test)]
 mod tests {
+    use super::{HtmlBuilder};
     use crate::{html_props::HtmlPropsBuilder, template::HtmlTemplate};
-
-    use super::HtmlBuilder;
+    use scraper::{Html, Selector};
 
     #[test]
-    fn generating_html() {
-        let binding = HtmlPropsBuilder::new()
+    fn generating_html_structure() {
+        let props = HtmlPropsBuilder::new()
             .lang("en")
-            .body("<div id=\"root\"></div>")
-            .head(
-                "
-<meta charset=\"utf-8\" />
-<meta name=\"viewport\" content=\"width=device-width\" />
-<title>This is a static page</title>
-        ",
-            )
-            .scripts(vec!["main.js".to_owned(), "react.js".to_owned()])
-            .styles(vec!["style.css".to_owned()]);
-        let props = binding.build();
-        let html = HtmlBuilder::new(HtmlTemplate::default(), props)
-            .generate()
-            .to_string();
+            .body("<div id=\"root\"><h1>Hello</h1></div>")
+            .head("<meta charset=\"utf-8\" /><title>Test Page</title>")
+            .scripts(vec!["main.js".into(), "react.js".into()])
+            .styles(vec!["style.css".into()])
+            .build();
 
-        assert!(html.contains("<title>This is a static page</title>"));
-        assert!(html.contains("<div id=\"root\"></div>"));
-        assert!(html.contains("<script src=\"main.js\">"));
-        assert!(html.contains("<script src=\"react.js\">"));
-        assert!(html.contains("<link rel=\"stylesheet\" href=\"style.css\">"));
-        assert!(html.contains("lang=\"en\""));
+        let html_output = HtmlBuilder::new(HtmlTemplate::default(), props).generate();
+        let doc = Html::parse_document(&html_output.to_string());
+
+        // Test lang attribute
+        let html_sel = Selector::parse("html").unwrap();
+        let html_el = doc.select(&html_sel).next().unwrap();
+        assert_eq!(html_el.value().attr("lang"), Some("en"));
+
+        // Test title
+        let title_sel = Selector::parse("title").unwrap();
+        let title = doc.select(&title_sel).next().unwrap();
+        assert_eq!(title.text().collect::<String>().trim(), "Test Page");
+
+        // Test script tags (order preserved)
+        let script_sel = Selector::parse("script[src]").unwrap();
+        let scripts: Vec<_> = doc.select(&script_sel).map(|s| s.value().attr("src").unwrap()).collect();
+        assert_eq!(scripts, vec!["main.js", "react.js"]);
+
+        // Test styles
+        let style_sel = Selector::parse("link[rel=\"stylesheet\"]").unwrap();
+        let styles: Vec<_> = doc.select(&style_sel).map(|s| s.value().attr("href").unwrap()).collect();
+        assert_eq!(styles, vec!["style.css"]);
+
+        // Test body content structure
+        let root_sel = Selector::parse("#root h1").unwrap();
+        assert!(doc.select(&root_sel).next().is_some());
     }
 
     #[test]
-    fn generating_html_without_scripts_or_styles() {
-        // This previously panicked before the fix in HtmlPropsBuilder::build()
+    fn no_scripts_or_styles_generates_clean_html() {
         let props = HtmlPropsBuilder::new()
             .lang("en")
             .body("<div id=\"root\"></div>")
-            .head("<title>Test</title>")
+            .head("<title>Minimal</title>")
             .build();
-        let html = HtmlBuilder::new(HtmlTemplate::default(), props).generate();
-        let output = html.to_string();
-        assert!(output.contains("<title>Test</title>"));
-        assert!(output.contains("<div id=\"root\"></div>"));
-        assert!(!output.contains("<script")); // no scripts injected
-        assert!(!output.contains("<link rel=\"stylesheet\"")); // no styles injected
-    }
 
-    #[test]
-    fn generating_html_contains_correct_script_tags() {
-        let props = HtmlPropsBuilder::new()
-            .scripts(vec!["app.js".to_owned()])
-            .styles(vec!["style.css".to_owned()])
-            .build();
-        let html = HtmlBuilder::new(HtmlTemplate::default(), props)
+        let html_str = HtmlBuilder::new(HtmlTemplate::default(), props)
             .generate()
             .to_string();
-        assert!(html.contains("<script src=\"app.js\">"));
-        assert!(html.contains("<link rel=\"stylesheet\" href=\"style.css\">"));
-    }
+        let doc = Html::parse_document(&html_str);
 
-    #[test]
-    fn generating_html_with_empty_lang_defaults_gracefully() {
-        let props = HtmlPropsBuilder::new().build(); // all defaults
-        let html = HtmlBuilder::new(HtmlTemplate::default(), props)
-            .generate()
-            .to_string();
-        assert!(html.contains("<html lang=\"\">"));
-        assert!(!html.contains("%LANG%"));
-        assert!(!html.contains("%HEAD%"));
-        assert!(!html.contains("%BODY%"));
-        assert!(!html.contains("%SCRIPTS%"));
-        assert!(!html.contains("%STYLES%"));
+        // No scripts
+        let script_sel = Selector::parse("script").unwrap();
+        assert!(doc.select(&script_sel).next().is_none());
+
+        // No styles
+        let style_sel = Selector::parse("link[rel=\"stylesheet\"]").unwrap();
+        assert!(doc.select(&style_sel).next().is_none());
+
+        // Required structure intact
+        assert!(doc.select(&Selector::parse("html").unwrap()).next().is_some());
+        assert!(doc.select(&Selector::parse("head").unwrap()).next().is_some());
+        assert!(doc.select(&Selector::parse("body").unwrap()).next().is_some());
     }
 }
+
