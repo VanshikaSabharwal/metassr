@@ -63,11 +63,7 @@ jobs:
            METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
         run: |
           echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
-          cargo build 
-
-      - name: Fix npm cache permissions
-        if: matrix.os != 'windows-latest'
-        run: sudo chown -R $USER:$USER ~/.npm
+          cargo build --verbose
 
       - name: Integration Testing
         working-directory: ./tests/web-app
