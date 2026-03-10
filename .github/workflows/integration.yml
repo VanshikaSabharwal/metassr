@@ -70,6 +70,10 @@ jobs:
       - name: Build on Linux/Windows
         if: matrix.os != 'macos-latest'
         run: cargo build --verbose
+ 
+      - name: Fix npm cache permissions (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: sudo chown -R $(id -u):$(id -g) ~/.npm
 
       - name: Integration Testing
         working-directory: ./tests/web-app
