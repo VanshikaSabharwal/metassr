@@ -58,6 +58,11 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Fix MetaCall library name on macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          sudo ln -sf /opt/homebrew/lib/libmetacalld.dylib /opt/homebrew/lib/libmetacall.dylib
+
       - name: Build on macOS
         if: matrix.os == 'macos-latest'
         env:
