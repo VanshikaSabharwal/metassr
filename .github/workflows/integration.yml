@@ -48,7 +48,6 @@ jobs:
           ls -la /opt/homebrew/lib || true
 
           echo "Environment variables:"
-          echo "METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
           echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
           echo "PATH=$PATH"
@@ -60,7 +59,11 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build
+        env:
+           METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
+        run: |
+          echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
+          cargo build
 
       - name: Integration Testing
         working-directory: ./tests/web-app
