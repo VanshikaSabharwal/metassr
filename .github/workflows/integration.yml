@@ -58,12 +58,18 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Build
+      - name: Build on macOS
+        if: matrix.os == 'macos-latest'
         env:
-           METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
+          METACALL_INSTALL_PATH: /opt/homebrew/lib
+          RUSTFLAGS: "-L $METACALL_INSTALL_PATH"
         run: |
           echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
           cargo build --verbose
+  
+      - name: Build on Linux/Windows
+        if: matrix.os != 'macos-latest'
+        run: cargo build --verbose
 
       - name: Integration Testing
         working-directory: ./tests/web-app
