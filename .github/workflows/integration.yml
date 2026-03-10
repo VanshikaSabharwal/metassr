@@ -2,7 +2,7 @@ name: Integration Test
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "mac-os-tests"]
   pull_request:
     branches: ["master"]
   workflow_dispatch:
