@@ -110,6 +110,7 @@ jobs:
           RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib' || '' }}
         run: |
           npm install
+          npm run build:debug
           echo "---Started---"
           npm run start:debug &
           SERVER_PID=$!
