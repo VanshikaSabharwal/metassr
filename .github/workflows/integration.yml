@@ -18,6 +18,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    
+    # Set environment variables for all steps on macOS
+    env:
+      METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
+      RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib' || '' }}
+      DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
+      LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
+      PKG_CONFIG_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib/pkgconfig' || '' }}
 
     steps:
       - name: Check out the repo
@@ -45,9 +53,11 @@ jobs:
           echo "Environment variables:"
           echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+          echo "LIBRARY_PATH=$LIBRARY_PATH"
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+          echo "RUSTFLAGS=$RUSTFLAGS"
           echo "PATH=$PATH"
 
-      # MOVED: Fix MetaCall library name on macOS BEFORE the build step
       - name: Fix MetaCall library name on macOS
         if: matrix.os == 'macos-latest'
         run: |
@@ -62,6 +72,9 @@ jobs:
           sudo ln -sf "$METACALL_DYLIB" /opt/homebrew/lib/libmetacall.dylib
           echo "Symlink created:"
           ls -la /opt/homebrew/lib/libmetacall.dylib
+          
+          # Also check for pkg-config file
+          find /opt/homebrew -name "metacall.pc" 2>/dev/null || echo "No pkg-config file found"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -71,11 +84,6 @@ jobs:
 
       - name: Build on macOS
         if: matrix.os == 'macos-latest'
-        env:
-          METACALL_INSTALL_PATH: /opt/homebrew/lib
-          RUSTFLAGS: "-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib"
-          DYLD_LIBRARY_PATH: /opt/homebrew/lib
-          LIBRARY_PATH: /opt/homebrew/lib
         run: |
           echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
           ls -la $METACALL_INSTALL_PATH | grep metacall
@@ -92,9 +100,6 @@ jobs:
       - name: Integration Testing
         working-directory: ./tests/web-app
         shell: bash
-        env:
-          npm_config_script_shell: bash
-          DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
         run: |
           npm install
           npm run build:debug
@@ -106,7 +111,6 @@ jobs:
             exit 1
           fi
           exit 0
-          
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
