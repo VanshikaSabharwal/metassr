@@ -10,7 +10,7 @@
         "build:ssg": "npm run metassr:release -- build -t ssg",
         "start": "npm run metassr:release -- run",
         "start:ssr": "npm run metassr:release -- run --serve",
-        "build:debug": "npm run metassr -- --debug-mode=metacall build",
+        "build:debug": "../../target/debug/metassr --debug-mode=metacall build",
         "build:debug:ssg": "npm run metassr -- --debug-mode=metacall build -t ssg",
         "start:debug": "npm run metassr -- --debug-mode=metacall run",
         "start:debug:ssg": "npm run metassr -- --debug-mode=metacall run --serve",
