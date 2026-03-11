@@ -19,13 +19,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     
-    # Set environment variables for all steps on macOS
+    # Set environment variables for all steps - platform-specific paths
     env:
-      METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
-      RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib' || '' }}
+      METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || matrix.os == 'ubuntu-latest' && '/usr/local/lib' || '' }}
+      RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib' || matrix.os == 'ubuntu-latest' && '-L /usr/local/lib -C link-arg=-Wl,-rpath,/usr/local/lib' || '' }}
       DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
-      LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
-      PKG_CONFIG_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib/pkgconfig' || '' }}
+      LD_LIBRARY_PATH: ${{ matrix.os == 'ubuntu-latest' && '/usr/local/lib' || '' }}
+      LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || matrix.os == 'ubuntu-latest' && '/usr/local/lib' || '' }}
+      PKG_CONFIG_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib/pkgconfig' || matrix.os == 'ubuntu-latest' && '/usr/local/lib/pkgconfig' || '' }}
 
     steps:
       - name: Check out the repo
@@ -37,7 +38,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh -s -- --debug
 
-      - name: Install MetaCall MacOS
+      - name: Install MetaCall macOS
         if: matrix.os == 'macos-latest'
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh 
 
@@ -52,14 +53,23 @@ jobs:
           find /usr -name "libmetacall*" 2>/dev/null || true
           find /opt -name "libmetacall*" 2>/dev/null || true
           find $HOME -name "libmetacall*" 2>/dev/null || true
-          echo "Listing /opt/homebrew/lib"
-          ls -la /opt/homebrew/lib || true
+          echo "Listing library paths:"
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            echo "Ubuntu library path: /usr/local/lib"
+            ls -la /usr/local/lib 2>/dev/null | grep metacall || echo "No metacall in /usr/local/lib"
+            echo "pkg-config path: /usr/local/lib/pkgconfig"
+            ls -la /usr/local/lib/pkgconfig 2>/dev/null | grep metacall || echo "No metacall.pc found"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            echo "macOS library path: /opt/homebrew/lib"
+            ls -la /opt/homebrew/lib 2>/dev/null | grep metacall || echo "No metacall in /opt/homebrew/lib"
+          fi
           echo "Environment variables:"
           echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
           echo "LIBRARY_PATH=$LIBRARY_PATH"
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
           echo "RUSTFLAGS=$RUSTFLAGS"
+          echo "METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
           echo "PATH=$PATH"
 
       - name: Install Rust
@@ -71,12 +81,20 @@ jobs:
       - name: Build on macOS
         if: matrix.os == 'macos-latest'
         run: |
-          echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
-          ls -la $METACALL_INSTALL_PATH | grep metacall
+          echo "Building on macOS..."
+          echo "METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
           cargo build --verbose
 
-      - name: Build on Linux/Windows
-        if: matrix.os != 'macos-latest'
+      - name: Build on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Building on Ubuntu..."
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+          echo "LIBRARY_PATH=$LIBRARY_PATH"
+          cargo build --verbose
+
+      - name: Build on Windows
+        if: matrix.os == 'windows-latest'
         run: cargo build --verbose
 
       - name: Fix npm cache permissions (macOS only)
@@ -86,6 +104,8 @@ jobs:
       - name: Integration Testing
         working-directory: ./tests/web-app
         shell: bash
+        env:
+          npm_config_script_shell: bash
         run: |
           npm install
           npm run build:debug
