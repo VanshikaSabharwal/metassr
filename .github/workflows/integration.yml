@@ -1,4 +1,5 @@
 name: Integration Test
+
 on:
   push:
     branches: ["master", "mac-os-tests", "test"]
@@ -14,12 +15,12 @@ jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    
-    # Set environment variables for all steps - platform-specific paths
+
     env:
       METACALL_INSTALL_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || matrix.os == 'ubuntu-latest' && '/usr/local/lib' || '' }}
       RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib' || matrix.os == 'ubuntu-latest' && '-L /usr/local/lib -C link-arg=-Wl,-rpath,/usr/local/lib' || '' }}
@@ -34,56 +35,52 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ---------------- MetaCall Installation ----------------
+
       - name: Install MetaCall Ubuntu (Debug)
         if: matrix.os == 'ubuntu-latest'
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh -s -- --debug
 
       - name: Install MetaCall macOS
         if: matrix.os == 'macos-latest'
-        run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh 
+        run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh
 
       - name: Link MetaCall library (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          echo "Locating MetaCall library in Cellar..."
-          METACALL_DYLIB=$(find /opt/homebrew/Cellar -name "libmetacall*.dylib" | head -1)
+          echo "Checking for MetaCall library..."
 
-          if [ -z "$METACALL_DYLIB" ]; then
-            echo "MetaCall library not found!"
-            find /opt/homebrew -name "libmetacall*.dylib"
-          exit 1
+          if [ -f /opt/homebrew/lib/libmetacall.dylib ]; then
+            echo "MetaCall already linked."
+          else
+            METACALL_DYLIB=$(find /opt/homebrew -name "libmetacall*.dylib" | head -1)
+
+            if [ -z "$METACALL_DYLIB" ]; then
+              echo "MetaCall library not found!"
+              find /opt/homebrew -name "libmetacall*.dylib"
+              exit 1
+            fi
+
+            echo "Linking $METACALL_DYLIB"
+            sudo ln -sf "$METACALL_DYLIB" /opt/homebrew/lib/libmetacall.dylib
           fi
 
-          echo "Found MetaCall at: $METACALL_DYLIB"
-  
-          echo "Linking to /opt/homebrew/lib..."
-          sudo mkdir -p /opt/homebrew/lib
-          sudo ln -sf "$METACALL_DYLIB" /opt/homebrew/lib/libmetacall.dylib
-
-          echo "Linked libraries:"
-          ls -la /opt/homebrew/lib | grep metacall
+          ls -la /opt/homebrew/lib | grep metacall || true
 
       - name: Install MetaCall Windows
         if: matrix.os == 'windows-latest'
         run: powershell -NoProfile -ExecutionPolicy Unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/metacall/install/master/install.ps1')))"
 
+      # ---------------- Debug Libraries ----------------
+
       - name: Debug MetaCall installation
         if: matrix.os != 'windows-latest'
         run: |
-          echo "Searching for metacall libraries.."
+          echo "Searching for MetaCall libraries..."
           find /usr -name "libmetacall*" 2>/dev/null || true
           find /opt -name "libmetacall*" 2>/dev/null || true
           find $HOME -name "libmetacall*" 2>/dev/null || true
-          echo "Listing library paths:"
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            echo "Ubuntu library path: /usr/local/lib"
-            ls -la /usr/local/lib 2>/dev/null | grep metacall || echo "No metacall in /usr/local/lib"
-            echo "pkg-config path: /usr/local/lib/pkgconfig"
-            ls -la /usr/local/lib/pkgconfig 2>/dev/null | grep metacall || echo "No metacall.pc found"
-          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            echo "macOS library path: /opt/homebrew/lib"
-            ls -la /opt/homebrew/lib 2>/dev/null | grep metacall || echo "No metacall in /opt/homebrew/lib"
-          fi
+
           echo "Environment variables:"
           echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
@@ -91,7 +88,8 @@ jobs:
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
           echo "RUSTFLAGS=$RUSTFLAGS"
           echo "METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
-          echo "PATH=$PATH"
+
+      # ---------------- Rust Setup ----------------
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -99,28 +97,35 @@ jobs:
           toolchain: stable
           override: true
 
+      # ---------------- Node Setup ----------------
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # ---------------- Build ----------------
+
       - name: Build on macOS
         if: matrix.os == 'macos-latest'
-        run: |
-          echo "Building on macOS..."
-          echo "METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
-          cargo build --verbose
+        run: cargo build --verbose
 
       - name: Build on Ubuntu
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          echo "Building on Ubuntu..."
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-          echo "LIBRARY_PATH=$LIBRARY_PATH"
-          cargo build --verbose
+        run: cargo build --verbose
 
       - name: Build on Windows
         if: matrix.os == 'windows-latest'
         run: cargo build --verbose
 
-      - name: Fix npm cache permissions (macOS only)
+      # ---------------- npm permission fix ----------------
+
+      - name: Fix npm cache permissions (macOS)
         if: matrix.os == 'macos-latest'
         run: sudo chown -R $(id -u):$(id -g) ~/.npm
+
+      # ---------------- Integration Test ----------------
 
       - name: Integration Testing
         working-directory: ./tests/web-app
@@ -128,30 +133,17 @@ jobs:
         env:
           npm_config_script_shell: bash
         run: |
-          set -x
           set -e
+          set -x
 
-          echo "Node version:"
           node -v
-
-          echo "NPM version:"
           npm -v
 
           echo "Installing dependencies..."
           npm install
 
-          echo "Running build..."
+          echo "Building project..."
           npm run build:debug
-
-          echo "Checking build output..."
-          pwd
-          ls -la 
-          echo "Dist folder contents:"
-          ls -la dist || echo "dist folder missing!"
-
-          echo "Checking dist folder..."
-          ls -la
-          ls -la dist || true
 
           echo "Starting server..."
           npm run start:debug > server.log 2>&1 &
@@ -159,34 +151,34 @@ jobs:
           SERVER_PID=$!
           echo "Server PID: $SERVER_PID"
 
+          trap "kill $SERVER_PID || true" EXIT
+
           echo "Waiting for server to start..."
-          sleep 10
 
-          echo "Checking running processes..."
-          ps aux | grep metassr || true
-          ps aux | grep node || true
+          for i in {1..30}; do
+            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || true)
 
-          echo "Checking open ports..."
-          lsof -i :8080 || true
+            if [ "$response" = "200" ]; then
+              echo "Server is ready!"
+              break
+            fi
 
-          echo "Testing server response..."
-          curl -v http://localhost:8080 || true
+            echo "Attempt $i: server not ready..."
+            sleep 2
+          done
 
-          response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
-
-          echo "HTTP RESPONSE: $response"
-
-          if [ "$response" -ne 200 ]; then
-            echo "Server did not respond with status 200"
+          if [ "$response" != "200" ]; then
+            echo "Server failed to start"
             echo "===== SERVER LOGS ====="
             cat server.log || true
             echo "======================="
             exit 1
           fi
 
-          echo "Server responded successfully!"
+          echo "Testing server response..."
+          curl http://localhost:8080
 
-          kill $SERVER_PID || true
+          echo "Integration test passed!"
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
