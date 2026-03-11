@@ -97,14 +97,6 @@ jobs:
           toolchain: stable
           override: true
 
-      # ---------------- Node Setup ----------------
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
       # ---------------- Build ----------------
 
       - name: Build on macOS
