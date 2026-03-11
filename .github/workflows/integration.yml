@@ -107,16 +107,59 @@ jobs:
         env:
           npm_config_script_shell: bash
         run: |
+          set -x
+          set -e
+
+          echo "Node version:"
+          node -v
+
+          echo "NPM version:"
+          npm -v
+
+          echo "Installing dependencies..."
           npm install
+
+          echo "Running build..."
           npm run build:debug
-          npm run start:debug &
+
+          echo "Checking dist folder..."
+          ls -la
+          ls -la dist || true
+
+          echo "Starting server..."
+          npm run start:debug > server.log 2>&1 &
+
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
+
+          echo "Waiting for server to start..."
           sleep 10
+
+          echo "Checking running processes..."
+          ps aux | grep metassr || true
+          ps aux | grep node || true
+
+          echo "Checking open ports..."
+          lsof -i :8080 || true
+
+          echo "Testing server response..."
+          curl -v http://localhost:8080 || true
+
           response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
+
+          echo "HTTP RESPONSE: $response"
+
           if [ "$response" -ne 200 ]; then
             echo "Server did not respond with status 200"
+            echo "===== SERVER LOGS ====="
+            cat server.log || true
+            echo "======================="
             exit 1
           fi
-          exit 0
+
+          echo "Server responded successfully!"
+
+          kill $SERVER_PID || true
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
