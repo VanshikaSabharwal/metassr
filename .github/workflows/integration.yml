@@ -42,6 +42,27 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh 
 
+      - name: Link MetaCall library (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Locating MetaCall library in Cellar..."
+          METACALL_DYLIB=$(find /opt/homebrew/Cellar -name "libmetacall*.dylib" | head -1)
+
+          if [ -z "$METACALL_DYLIB" ]; then
+            echo "MetaCall library not found!"
+            find /opt/homebrew -name "libmetacall*.dylib"
+          exit 1
+          fi
+
+          echo "Found MetaCall at: $METACALL_DYLIB"
+  
+          echo "Linking to /opt/homebrew/lib..."
+          sudo mkdir -p /opt/homebrew/lib
+          sudo ln -sf "$METACALL_DYLIB" /opt/homebrew/lib/libmetacall.dylib
+
+          echo "Linked libraries:"
+          ls -la /opt/homebrew/lib | grep metacall
+
       - name: Install MetaCall Windows
         if: matrix.os == 'windows-latest'
         run: powershell -NoProfile -ExecutionPolicy Unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/metacall/install/master/install.ps1')))"
