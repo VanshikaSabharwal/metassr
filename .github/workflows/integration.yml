@@ -112,7 +112,7 @@ jobs:
           npm install
           npm run build:debug
           echo "---Started---"
-          npm run start:debug &
+          npm run start:debug 
           echo "---Ended----"
           sleep 10
           response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
