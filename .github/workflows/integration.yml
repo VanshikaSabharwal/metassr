@@ -32,7 +32,9 @@ jobs:
       - name: Install MetaCall macOS
         if: matrix.os == 'macos-latest'
         run: |
-          curl -L https://github.com/metacall/distributable-macos/releases/latest/download/metacall.pkg -o metacall.pkg
+          curl -L -o metacall.pkg \
+          https://github.com/metacall/distributable-macos/releases/latest/download/metacall-tarball-macos-arm64-dbg.pkg
+          
           sudo installer -pkg metacall.pkg -target /
 
       - name: Install MetaCall Windows
