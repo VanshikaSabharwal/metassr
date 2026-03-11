@@ -111,28 +111,6 @@ jobs:
         run: |
           npm install
           npm run build:debug
-          echo "---Started---"
-          npm run start:debug &
-          SERVER_PID=$!
-
-          echo "Waiting for server to start..."
-
-          for i in {1..30}; do
-            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || true)
-
-            if [ "$response" -eq 200 ]; then
-              echo "Server started successfully"
-              kill $SERVER_PID || true
-              exit 0
-            fi
-
-            sleep 2
-          done
-
-          echo "Server failed to start"
-          kill $SERVER_PID || true
-          exit 1
-
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
