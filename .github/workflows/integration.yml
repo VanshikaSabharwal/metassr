@@ -112,7 +112,7 @@ jobs:
           npm install
           npm run build:debug
           echo "---Started---"
-          npm run start &
+          npm run start:debug &
           SERVER_PID=$!
 
           echo "Waiting for server to start..."
