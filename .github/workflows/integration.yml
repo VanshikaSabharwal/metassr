@@ -80,6 +80,21 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: sudo chown -R $(id -u):$(id -g) ~/.npm
 
+      - name: Setup Node.js (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Debug Node.js (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Node path: $(which node)"
+          echo "Node version: $(node --version)"
+          echo "NODE_PATH=$NODE_PATH"
+          ls /opt/homebrew/lib/node_modules || true
+          ls /opt/homebrew/Cellar/metacall/0.9.20/ || true
+
       - name: Integration Testing
         working-directory: ./tests/web-app
         shell: bash
@@ -88,12 +103,14 @@ jobs:
         run: |
           export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
           export RUSTFLAGS="-L /opt/homebrew/lib"
+          # Help MetaCall find the Node.js runtime
+          export NODE_PATH=$(npm root -g)
+          export PATH=$(dirname $(which node)):$PATH
 
           npm install
           npm run build:debug
 
           echo "Starting server..."
-          # Run the pre-built binary directly instead of via cargo run
           DYLD_LIBRARY_PATH=/opt/homebrew/lib \
             ../../target/debug/metassr --debug-mode=metacall run > /tmp/server.log 2>&1 &
           SERVER_PID=$!
@@ -120,7 +137,6 @@ jobs:
 
           kill $SERVER_PID 2>/dev/null || true
           exit 1
-
 
       # TODO: Improve testing by checking if resulting HTML is correct
 
