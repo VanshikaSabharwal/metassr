@@ -112,15 +112,26 @@ jobs:
           npm install
           npm run build:debug
           echo "---Started---"
-          npm run start
-          echo "---Ended----"
-          sleep 10
-          response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
-          if [ "$response" -ne 200 ]; then
-            echo "Server did not respond with status 200"
-            exit 1
-          fi
-          exit 0
+          npm run start &
+          SERVER_PID=$!
+
+          echo "Waiting for server to start..."
+
+          for i in {1..30}; do
+            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || true)
+
+            if [ "$response" -eq 200 ]; then
+              echo "Server started successfully"
+              kill $SERVER_PID || true
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "Server failed to start"
+          kill $SERVER_PID || true
+          exit 1
 
       # TODO: Improve testing by checking if resulting HTML is correct
 
