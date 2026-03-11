@@ -1,5 +1,4 @@
 name: Integration Test
-
 on:
   push:
     branches: ["master", "mac-os-tests", "test"]
@@ -41,10 +40,8 @@ jobs:
           find /usr -name "libmetacall*" 2>/dev/null || true
           find /opt -name "libmetacall*" 2>/dev/null || true
           find $HOME -name "libmetacall*" 2>/dev/null || true
-
           echo "Listing /opt/homebrew/lib"
           ls -la /opt/homebrew/lib || true
-
           echo "Environment variables:"
           echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
@@ -53,7 +50,17 @@ jobs:
       - name: Fix MetaCall library name on macOS
         if: matrix.os == 'macos-latest'
         run: |
-          sudo ln -sf /opt/homebrew/Cellar/metacall/0.9.20/lib/libmetacalld.dylib /opt/homebrew/lib/libmetacall.dylib
+          # Find the actual versioned dylib and create a non-debug symlink
+          METACALL_DYLIB=$(find /opt/homebrew/Cellar/metacall -name "libmetacalld.dylib" 2>/dev/null | head -1)
+          if [ -z "$METACALL_DYLIB" ]; then
+            echo "ERROR: Could not find libmetacalld.dylib"
+            find /opt/homebrew/Cellar -name "libmetacall*" 2>/dev/null || true
+            exit 1
+          fi
+          echo "Found: $METACALL_DYLIB"
+          sudo ln -sf "$METACALL_DYLIB" /opt/homebrew/lib/libmetacall.dylib
+          echo "Symlink created:"
+          ls -la /opt/homebrew/lib/libmetacall.dylib
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -65,11 +72,12 @@ jobs:
         if: matrix.os == 'macos-latest'
         env:
           METACALL_INSTALL_PATH: /opt/homebrew/lib
-          RUSTFLAGS: "-L /opt/homebrew/lib"
+          RUSTFLAGS: "-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib"
           DYLD_LIBRARY_PATH: /opt/homebrew/lib
+          LIBRARY_PATH: /opt/homebrew/lib
         run: |
           echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
-          ls -la $METACALL_INSTALL_PATH
+          ls -la $METACALL_INSTALL_PATH | grep metacall
           cargo build --verbose
 
       - name: Build on Linux/Windows
@@ -85,6 +93,7 @@ jobs:
         shell: bash
         env:
           npm_config_script_shell: bash
+          DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
         run: |
           npm install
           npm run build:debug
