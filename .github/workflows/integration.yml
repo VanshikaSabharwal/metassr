@@ -86,46 +86,17 @@ jobs:
         env:
           npm_config_script_shell: bash
         run: |
-          export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
-          export RUSTFLAGS="-L /opt/homebrew/lib"
-          export NODE_PATH=/opt/homebrew/Cellar/metacall/0.9.20/lib/node_modules
-          export PATH=/opt/homebrew/Cellar/metacall/0.9.20/bin:$PATH
-
           npm install
           npm run build:debug
-
-          echo "Node in PATH: $(which node)"
-          echo "NODE_PATH=$NODE_PATH"
-
-          echo "Starting server..."
-          DYLD_LIBRARY_PATH=/opt/homebrew/lib \
-          NODE_PATH=/opt/homebrew/Cellar/metacall/0.9.20/lib/node_modules \
-            ../../target/debug/metassr --debug-mode=metacall run > /tmp/server.log 2>&1 &
-          SERVER_PID=$!
-          echo "Server PID: $SERVER_PID"
-
-          for i in $(seq 1 15); do
-            sleep 2
-            echo "--- Server log at ${i}x2s ---"
-            cat /tmp/server.log
-            kill -0 $SERVER_PID 2>/dev/null && echo "RUNNING" || echo "DEAD"
-            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || echo "000")
-            echo "HTTP response: $response"
-            if [ "$response" -eq 200 ]; then
-              echo "Server responded successfully"
-              kill $SERVER_PID 2>/dev/null || true
-              exit 0
-            fi
-          done
-
-          echo "=== FINAL server log ==="
-          cat /tmp/server.log
-          echo "=== Open ports ==="
-          lsof -i :8080 || true
-
-          kill $SERVER_PID 2>/dev/null || true
-          exit 1
-
+          npm run start:debug &
+          sleep 10
+          response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
+          if [ "$response" -ne 200 ]; then
+            echo "Server did not respond with status 200"
+            exit 1
+          fi
+          exit 0
+          
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
