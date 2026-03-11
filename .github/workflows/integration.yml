@@ -85,16 +85,17 @@ jobs:
         shell: bash
         env:
           npm_config_script_shell: bash
-          DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
-          RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib' || '' }}
         run: |
           export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
           export RUSTFLAGS="-L /opt/homebrew/lib"
+
           npm install
           npm run build:debug
 
           echo "Starting server..."
-          npm run start:debug > /tmp/server.log 2>&1 &
+          # Run the pre-built binary directly instead of via cargo run
+          DYLD_LIBRARY_PATH=/opt/homebrew/lib \
+            ../../target/debug/metassr --debug-mode=metacall run > /tmp/server.log 2>&1 &
           SERVER_PID=$!
           echo "Server PID: $SERVER_PID"
 
@@ -116,8 +117,6 @@ jobs:
           cat /tmp/server.log
           echo "=== Open ports ==="
           lsof -i :8080 || true
-          echo "=== All metassr processes ==="
-          ps aux | grep metassr || true
 
           kill $SERVER_PID 2>/dev/null || true
           exit 1
