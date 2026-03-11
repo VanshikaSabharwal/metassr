@@ -88,19 +88,32 @@ jobs:
           DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
           RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib' || '' }}
         run: |
+          export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
           npm install
           npm run build:debug
-          npm run start:debug &
+
+          echo "Starting server..."
+          npm run start:debug > /tmp/server.log 2>&1 &
           SERVER_PID=$!
-          sleep 10
+          echo "Server PID: $SERVER_PID"
+
+          sleep 15
+          echo "--- Server log ---"
+          cat /tmp/server.log
+
           response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
+          echo "HTTP response: $response"
+
           if [ "$response" -ne 200 ]; then
             echo "Server did not respond with status 200"
-            kill $SERVER_PID
+            kill $SERVER_PID 2>/dev/null || true
             exit 1
           fi
+
           echo "Server responded successfully"
           kill $SERVER_PID
+
+
 
       # TODO: Improve testing by checking if resulting HTML is correct
 
