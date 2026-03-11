@@ -42,10 +42,16 @@ jobs:
           find $HOME -name "libmetacall*" 2>/dev/null || true
           echo "Listing /opt/homebrew/lib"
           ls -la /opt/homebrew/lib || true
+          echo "Environment variables:"
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+          echo "PATH=$PATH"
 
+      # MOVED: Fix MetaCall library name on macOS BEFORE the build step
       - name: Fix MetaCall library name on macOS
         if: matrix.os == 'macos-latest'
         run: |
+          # Find the actual versioned dylib and create a non-debug symlink
           METACALL_DYLIB=$(find /opt/homebrew/Cellar/metacall -name "libmetacalld.dylib" 2>/dev/null | head -1)
           if [ -z "$METACALL_DYLIB" ]; then
             echo "ERROR: Could not find libmetacalld.dylib"
@@ -57,31 +63,6 @@ jobs:
           echo "Symlink created:"
           ls -la /opt/homebrew/lib/libmetacall.dylib
 
-      - name: Configure Cargo linker search path (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p .cargo
-          # Write/overwrite config.toml with the macOS library search path.
-          # rustflags here are applied by Cargo before invoking the linker,
-          # unlike the RUSTFLAGS env var which is ignored when a config.toml
-          # rustflags entry already exists — so this is the authoritative path.
-          cat >> .cargo/config.toml << 'EOF'
-
-          [target.aarch64-apple-darwin]
-          rustflags = [
-            "-L", "/opt/homebrew/lib",
-            "-C", "link-arg=-Wl,-rpath,/opt/homebrew/lib",
-          ]
-
-          [target.x86_64-apple-darwin]
-          rustflags = [
-            "-L", "/opt/homebrew/lib",
-            "-C", "link-arg=-Wl,-rpath,/opt/homebrew/lib",
-          ]
-          EOF
-          echo "--- .cargo/config.toml ---"
-          cat .cargo/config.toml
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -91,11 +72,13 @@ jobs:
       - name: Build on macOS
         if: matrix.os == 'macos-latest'
         env:
+          METACALL_INSTALL_PATH: /opt/homebrew/lib
+          RUSTFLAGS: "-L /opt/homebrew/lib -C link-arg=-Wl,-rpath,/opt/homebrew/lib"
           DYLD_LIBRARY_PATH: /opt/homebrew/lib
           LIBRARY_PATH: /opt/homebrew/lib
-          METACALL_INSTALL_PATH: /opt/homebrew/lib
         run: |
-          echo "Active Rust target: $(rustc -vV | grep host | awk '{print $2}')"
+          echo "Using METACALL_INSTALL_PATH=$METACALL_INSTALL_PATH"
+          ls -la $METACALL_INSTALL_PATH | grep metacall
           cargo build --verbose
 
       - name: Build on Linux/Windows
@@ -123,7 +106,7 @@ jobs:
             exit 1
           fi
           exit 0
-
+          
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
