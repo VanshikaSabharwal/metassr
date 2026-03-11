@@ -110,7 +110,24 @@ jobs:
           RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib' || '' }}
         run: |
           npm install
-          timeout 60 npm run build:debug
+          npm run build:debug > build.log 2>&1 &
+          BUILD_PID=$!
+          echo "Watching build logs..."
+          for i in {1..60}; do
+            if grep -q "Building is completed" build.log; then
+              echo "Build completed detected"
+              kill $BUILD_PID || true
+            break
+            fi
+
+            if ! kill -0 $BUILD_PID 2>dev/null; then
+              echo " Build process exited"
+              break
+            fi
+
+            sleep 1
+          done
+
           echo "---Started---"
           npm run start:debug &
           SERVER_PID=$!
