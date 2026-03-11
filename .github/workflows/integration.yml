@@ -58,24 +58,6 @@ jobs:
           echo "RUSTFLAGS=$RUSTFLAGS"
           echo "PATH=$PATH"
 
-      - name: Fix MetaCall library name on macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          # Find the actual versioned dylib and create a non-debug symlink
-          METACALL_DYLIB=$(find /opt/homebrew/Cellar/metacall -name "libmetacalld.dylib" 2>/dev/null | head -1)
-          if [ -z "$METACALL_DYLIB" ]; then
-            echo "ERROR: Could not find libmetacalld.dylib"
-            find /opt/homebrew/Cellar -name "libmetacall*" 2>/dev/null || true
-            exit 1
-          fi
-          echo "Found: $METACALL_DYLIB"
-          sudo ln -sf "$METACALL_DYLIB" /opt/homebrew/lib/libmetacall.dylib
-          echo "Symlink created:"
-          ls -la /opt/homebrew/lib/libmetacall.dylib
-          
-          # Also check for pkg-config file
-          find /opt/homebrew -name "metacall.pc" 2>/dev/null || echo "No pkg-config file found"
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
