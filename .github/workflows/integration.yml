@@ -120,7 +120,7 @@ jobs:
             break
             fi
 
-            if ! kill -0 $BUILD_PID 2>dev/null; then
+            if ! kill -0 $BUILD_PID 2>/dev/null; then
               echo " Build process exited"
               break
             fi
