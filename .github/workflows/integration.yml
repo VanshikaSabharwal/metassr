@@ -122,6 +122,12 @@ jobs:
           echo "Running build..."
           npm run build:debug
 
+          echo "Checking build output..."
+          pwd
+          ls -la 
+          echo "Dist folder contents:"
+          ls -la dist || echo "dist folder missing!"
+
           echo "Checking dist folder..."
           ls -la
           ls -la dist || true
