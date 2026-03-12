@@ -23,7 +23,7 @@ WORKDIR /root
 # Debug Image
 FROM base AS build_debug
 
-#Argument for the name of the app
+# Argument for the name of the app
 ARG APP_NAME
 
 # Install MetaCall in debug mode
@@ -35,21 +35,17 @@ COPY . .
 ENV RUSTFLAGS="-g"
 
 # Build with debug mode
-RUN cargo build
-
-# Copy binary
-RUN cp target/debug/metassr /usr/local/bin/metassr
+RUN cargo build \
+	&& cp target/debug/metassr /usr/local/bin/metassr
 
 # Application location
 WORKDIR /root/${APP_NAME}
 
-# Install packages
-RUN npm install
+# Install packages & Build the Application
+RUN npm install \
+	&& npm run build:ssr
 
-# Build the Application
-RUN npm run build:ssr
-
-#Exposing Port
+# Exposing Port
 EXPOSE 8080
 
-CMD ["npm", "run", "run"]
+CMD ["npm", "start:ssr"]
