@@ -33,7 +33,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           curl -L -o metacall.pkg \
-          https://github.com/metacall/distributable-macos/releases/latest/download/metacall-tarball-macos-arm64-dbg.pkg
+          https://github.com/metacall/distributable-macos/releases/latest/download/metacall-tarball-macos-amd64.pkg 
 
           sudo installer -pkg metacall.pkg -target /
 
