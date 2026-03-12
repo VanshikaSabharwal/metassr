@@ -30,16 +30,20 @@ jobs:
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh -s -- --debug
 
       - name: Set library path for metacall
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'macos-latest'
         run: |
-          echo "LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
-          echo "DYLD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
-          echo "RUSTFLAGS=-L /usr/local/lib" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=/opt/homebrew/lib" >> $GITHUB_ENV
+          echo "DYLD_LIBRARY_PATH=/opt/homebrew/lib" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/opt/homebrew/lib" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-L /opt/homebrew/lib" >> $GITHUB_ENV
 
       - name: Install MetaCall macOS
         if: matrix.os == 'macos-latest'
-        run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh -s -- --debug
+        run: |
+          curl -L -o metacall.pkg \
+          https://github.com/metacall/distributable-macos/releases/latest/download/metacall-tarball-macos-arm64.pkg 
+
+          sudo installer -pkg metacall.pkg -target /
 
       - name: Install MetaCall Windows
         if: matrix.os == 'windows-latest'
