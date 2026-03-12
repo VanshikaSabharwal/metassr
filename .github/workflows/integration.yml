@@ -29,6 +29,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh -s -- --debug
 
+      - name: Set library path for metacall
+        run: |
+          echo "LIBRARY_PATH=/usr/local/lib:/opt/homebrew/lib" >> $GITHUB_ENV
+          echo "DYLD_LIBRARY_PATH=/usr/local/lib:/opt/homebrew/lib" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-L /usr/local/lib -L /opt/homebrew/lib" >> $GITHUB_ENV
+
       - name: Install MetaCall macOS
         if: matrix.os == 'macos-latest'
         run: |
