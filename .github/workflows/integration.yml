@@ -30,6 +30,7 @@ jobs:
         run: curl -sL https://raw.githubusercontent.com/metacall/install/master/install.sh | sh -s -- --debug
 
       - name: Set library path for metacall
+        if: matrix.os != 'windows-latest'
         run: |
           echo "LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
           echo "DYLD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
