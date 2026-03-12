@@ -82,17 +82,50 @@ jobs:
         shell: bash
         env:
           npm_config_script_shell: bash
+          DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && '/opt/homebrew/lib' || '' }}
+          RUSTFLAGS: ${{ matrix.os == 'macos-latest' && '-L /opt/homebrew/lib' || '' }}
         run: |
           npm install
-          npm run build:debug
+          npm run build:debug > build.log 2>&1 &
+          BUILD_PID=$!
+          echo "Watching build logs..."
+          for i in {1..60}; do
+            if grep -q "Building is completed" build.log; then
+              echo "Build completed detected"
+              kill $BUILD_PID || true
+            break
+            fi
+
+            if ! kill -0 $BUILD_PID 2>/dev/null; then
+              echo " Build process exited"
+              break
+            fi
+
+            sleep 1
+          done
+
+          echo "---Started---"
           npm run start:debug &
-          sleep 10
-          response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
-          if [ "$response" -ne 200 ]; then
-            echo "Server did not respond with status 200"
-            exit 1
-          fi
-          exit 0
+          SERVER_PID=$!
+
+          echo "Waiting for server to start..."
+
+          for i in {1..30}; do
+            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || true)
+
+            if [ "$response" -eq 200 ]; then
+              echo "Server started successfully"
+              kill $SERVER_PID || true
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "Server failed to start"
+          kill $SERVER_PID || true
+          exit 1
+
 
       # TODO: Improve testing by checking if resulting HTML is correct
 
