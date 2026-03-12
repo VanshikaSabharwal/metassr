@@ -34,12 +34,31 @@ jobs:
         run: |
           curl -L -o metacall.pkg \
           https://github.com/metacall/distributable-macos/releases/latest/download/metacall-tarball-macos-arm64-dbg.pkg
-          
+
           sudo installer -pkg metacall.pkg -target /
 
       - name: Install MetaCall Windows
         if: matrix.os == 'windows-latest'
         run: powershell -NoProfile -ExecutionPolicy Unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/metacall/install/master/install.ps1')))"
+        
+      # -------------------
+      # Debug MetaCall
+      # -------------------
+      - name: Debug MetaCall installation
+        if: matrix.os != 'windows-latest'
+        run: |
+          echo "Searching for metacall libraries.."
+          find /usr -name "libmetacall*" 2>/dev/null || true
+          find /opt -name "libmetacall*" 2>/dev/null || true
+          find $HOME -name "libmetacall*" 2>/dev/null || true
+
+          echo "Listing /opt/homebrew/lib"
+          ls -la /opt/homebrew/lib || true
+
+          echo "Environment variables:"
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+          echo "PATH=$PATH"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
