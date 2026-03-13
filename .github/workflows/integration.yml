@@ -143,7 +143,7 @@ jobs:
               const browser = await chromium.launch();
               const page = await browser.newPage();
 
-              console.log("Opening...");
+              console.log('Opening...'');
               await page.goto('http://localhost:8080');
 
               const html = await page.content();
