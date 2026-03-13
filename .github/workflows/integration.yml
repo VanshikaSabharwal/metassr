@@ -61,22 +61,54 @@ jobs:
 
       # TODO: Improve testing by checking if resulting HTML is correct
 
-      # - name: Install Playwright
-      #   run: npm install -g playwright
+      - name: Install Playwright
+        run: | 
+          npm install -g playwright
+          npx playwright install chromium
 
-      # - name: Run Playwright test
-      #   run: |
-      #     node -e "
-      #       const { chromium } = require('playwright');
-      #       (async () => {
-      #         const browser = await chromium.launch();
-      #         const page = await browser.newPage();
-      #         await page.goto('http://localhost:3000');
-      #         const html = await page.content();
-      #         if (!html.includes('<title>My Node App</title>')) {
-      #           console.error('HTML content did not match expected value');
-      #           process.exit(1);
-      #         }
-      #         await browser.close();
-      #       })();
-      #     "
+      - name: Run Playwright test
+        run: |
+          node -e "
+            const { chromium } = require('playwright');
+            (async () => {
+              console.log('Launching browser...');
+
+              const browser = await chromium.launch();
+              const page = await browser.newPage();
+
+              console.log("Opening http://localhost:8080 ...");
+              await page.goto('http://localhost:8080');
+
+              const html = await page.content();
+              console.log('Page loaded. Checking HTML Content...');
+
+              if (!html.includes('<title>My Node App</title>')) {
+                console.error('Missing or incorrect <title>My Node App</title>');
+                process.exit(1);
+              }
+              if(!html.includes('<div id=\"root\"></div>')){
+                console.error('Missing <div id=\"root\"></div>');
+                process.exit(1);
+              }
+              if(!html.includes('<script src=\"main.js\">')){
+                console.error('Missing <script src=\"main.js\">');
+                process.exit(1);
+              }
+              if(!html.includes('<script src=\"react.js\">')){
+                console.error('Missing <script src=\"react.js\">');
+                process.exit(1);
+              }
+              if(!html.includes('<link rel=\"stylesheet\" href=\"style.css\">')){
+                console.error('Missing stylesheet link style.css');
+                process.exit(1);
+              }     
+              if(!html.includes('lang=\"en\"')){
+                console.error('HTML lang attribute not set to en');
+                process.exit(1);
+              }     
+
+              console.log('All HTML checks passed!');         
+              
+              await browser.close();
+            })();
+          "
