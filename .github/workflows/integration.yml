@@ -115,8 +115,7 @@ jobs:
 
             if [ "$response" -eq 200 ]; then
               echo "Server started successfully"
-              kill $SERVER_PID || true
-              exit 0
+              break
             fi
 
             sleep 2
@@ -129,11 +128,13 @@ jobs:
       # TODO: Improve testing by checking if resulting HTML is correct
 
       - name: Install Playwright
+        working-directory: ./tests/web-app
         run: | 
           npm install -g playwright
           npx playwright install chromium
 
       - name: Run Playwright test
+        working-directory: ./tests/web-app
         run: |
           node -e "
             const { chromium } = require('playwright');
