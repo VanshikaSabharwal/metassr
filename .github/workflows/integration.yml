@@ -75,7 +75,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: sudo chown -R $(id -u):$(id -g) ~/.npm
 
-      - name: Integration Testing
+      - name: Build Web App
         working-directory: ./tests/web-app
         shell: bash
         env:
@@ -102,79 +102,74 @@ jobs:
             sleep 1
           done
 
-          echo "---Started---"
-          npm run start:debug &
-          SERVER_PID=$!
-
-          echo "Waiting for server to start..."
-          SERVER_STARTED=false
-
-          for i in {1..30}; do
-            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || true)
-
-            if [ "$response" -eq 200 ]; then
-              echo "Server started successfully"
-              SERVER_STARTED=true
-              break
-            fi
-
-            sleep 2
-          done
-
-          if [ "$SERVER_STARTED" = false ]; then
-            echo "Server failed to start"
-            kill $SERVER_PID || true
-            exit 1
-          fi
-
       - name: Install Playwright
         working-directory: ./tests/web-app
         run: |
           npm install playwright
           npx playwright install chromium
 
-      - name: Restart server for Playwright
+      - name: Start Server
         working-directory: ./tests/web-app
         shell: bash
         run: |
           npm run start:debug &
-          SERVER_PID=$!
+          echo $! > server.pid
 
           echo "Waiting for server..."
 
           for i in {1..30}; do
-            response=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080 || true)
-
-            if [ "$response" -eq 200 ]; then
+            if curl -fs http://localhost:8080 > /dev/null; then
               echo "Server ready"
-              break
+              exit 0
             fi
-
             sleep 2
           done
+
+          echo "Server failed to start"
+          exit 1
 
       - name: Run Playwright test
         working-directory: ./tests/web-app
         run: |
           node -e "
             const { chromium } = require('playwright');
+
             (async () => {
               console.log('Launching browser...');
-
               const browser = await chromium.launch();
-              const page = await browser.newPage();
 
-              console.log('Opening...');
-              await page.goto('http://localhost:8080');
+              try {
+                const page = await browser.newPage();
 
-              const html = await page.content();
-              console.log('Page loaded. Checking HTML Content...');
+                console.log('Opening...');
+                await page.goto('http://localhost:8080');
 
-              console.log('----- PAGE HTML START -----');
-              console.log(html);
-              console.log('----- PAGE HTML END -----');
+                const html = await page.content();
+                console.log('Page loaded. Checking HTML Content...');
 
-              console.log('All HTML checks passed!');
-              await browser.close();
+                if (!html.includes('<title>My website</title>')) {
+                  throw new Error('Missing or incorrect <title>My website</title>');
+                }
+
+                if (!html.includes('<div id=\"root\">')) {
+                  throw new Error('Missing root div');
+                }
+
+                if (!html.includes('/dist/pages/index.js.js')) {
+                  throw new Error('Missing main script');
+                }
+
+                if (!html.includes('/dist/pages/index.js.css')) {
+                  throw new Error('Missing stylesheet');
+                }
+
+                if (!html.includes('lang=\"en\"')) {
+                  throw new Error('HTML lang attribute not set to en');
+                }
+
+                console.log('All HTML checks passed!');
+              } finally {
+                await browser.close();
+              }
             })();
           "
