@@ -170,7 +170,7 @@ jobs:
               const html = await page.content();
               console.log('Page loaded. Checking HTML Content...');
 
-              if (!html.includes('<title>My Node App</title>')) {
+              if (!html.includes('<title>This is a static page</title>')) {
                 console.error('Missing or incorrect <title>My Node App</title>');
                 process.exit(1);
               }
@@ -204,4 +204,3 @@ jobs:
               await browser.close();
             })();
           "
-          
