@@ -170,10 +170,10 @@ jobs:
               const html = await page.content();
               console.log('Page loaded. Checking HTML Content...');
 
-              console.log("----- PAGE HTML START -----");
+              console.log('----- PAGE HTML START -----');
               console.log(html);
-              console.log("----- PAGE HTML END -----");
-              
+              console.log('----- PAGE HTML END -----');
+
               console.log('All HTML checks passed!');
               await browser.close();
             })();
