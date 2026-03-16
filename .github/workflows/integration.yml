@@ -128,6 +128,12 @@ jobs:
           echo "Server failed to start"
           exit 1
 
+      - name: Debug server response (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          curl -v http://localhost:8080/ || true 
+
       - name: Run Playwright test
         working-directory: ./tests/web-app
         shell: bash
@@ -143,7 +149,11 @@ jobs:
                 const page = await browser.newPage();
 
                 console.log('Opening...');
-                await page.goto('http://localhost:8080');
+                const response = await page.goto('http://localhost:8080', {
+                  waitUntil: 'domcontentloaded',
+                  timeout: 30000
+                });
+                console.log('Response status:', response ? response.status() : 'none');
 
                 const html = await page.content();
                 console.log('Page loaded. Checking HTML Content...');
