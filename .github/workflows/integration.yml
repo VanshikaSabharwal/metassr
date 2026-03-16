@@ -130,6 +130,7 @@ jobs:
 
       - name: Run Playwright test
         working-directory: ./tests/web-app
+        shell: bash
         run: |
           node -e "
             const { chromium } = require('playwright');
