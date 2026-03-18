@@ -2,7 +2,7 @@ name: Integration Test
 
 on:
   push:
-    branches: ["master", "test-2"]
+    branches: ["master"]
   pull_request:
     branches: ["master"]
   workflow_dispatch:
@@ -47,7 +47,7 @@ jobs:
         run: powershell -NoProfile -ExecutionPolicy Unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/metacall/install/master/install.ps1')))"
 
       - name: Debug MetaCall installation
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'macos-latest'
         run: |
           echo "Searching for metacall libraries.."
           find /usr -name "libmetacall*" 2>/dev/null || true
