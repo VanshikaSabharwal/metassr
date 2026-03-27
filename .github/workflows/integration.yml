@@ -50,6 +50,27 @@ jobs:
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
           echo "PATH=$PATH"
 
+      - name: Checking for broken symlinks
+        if: runner.os == 'macOS'
+        run: | 
+          echo "Checking for broken symlinks in /opt/homebrew/lib"
+
+          if [ ! -d "/opt/homebrew/lib" ]; then
+            echo "⚠️ Directory /opt/homebrew/lib does not exist"
+            exit 1
+          fi
+          
+          broken_links=$(find /opt/homebrew/lib -type l ! -exec test -e {} \; -print)
+
+          if [ -n "$broken_links" ]; then
+            echo "❌ Broken symlinks found:"
+            echo "$broken_links"
+            exit 1
+          else
+            echo "No broken symlinks"
+          fi
+
+
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
