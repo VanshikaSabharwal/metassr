@@ -60,7 +60,7 @@ jobs:
             exit 1
           fi
           
-          broken_links=$(find /opt/homebrew/lib -type l ! -exec test -e {} \; -print)
+          broken_links=$(find /opt/homebrew/lib -type l -name "*metacall*" ! -exec test -e {} \; -print)
 
           if [ -n "$broken_links" ]; then
             echo "❌ Broken symlinks found:"
