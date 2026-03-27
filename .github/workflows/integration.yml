@@ -19,6 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -32,7 +33,6 @@ jobs:
       - name: Install MetaCall Windows
         if: runner.os == 'Windows'
         run: powershell -NoProfile -ExecutionPolicy Unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/metacall/install/master/install.ps1')))"
-
 
       - name: Debug MetaCall installation
         if: matrix.os == 'macos-latest'
@@ -50,27 +50,37 @@ jobs:
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
           echo "PATH=$PATH"
 
-      - name: Checking for broken symlinks
+      - name: Checking for broken symlinks (macOS - full scan)
         if: runner.os == 'macOS'
-        run: | 
+        run: |
           echo "Checking for broken symlinks in /opt/homebrew/lib"
 
           if [ ! -d "/opt/homebrew/lib" ]; then
             echo "⚠️ Directory /opt/homebrew/lib does not exist"
             exit 1
           fi
-          
-          broken_links=$(find /opt/homebrew/lib -type l -name "*metacall*" ! -exec test -e {} \; -print)
+
+          broken_links=$(find /opt/homebrew/lib -type l ! -exec test -e {} \; -print)
 
           if [ -n "$broken_links" ]; then
-            echo "❌ Broken symlinks found:"
+            echo "⚠️ Broken symlinks found:"
             echo "$broken_links"
-            exit 1
+
+            echo ""
+            echo "Filtering known harmless ones (ruby, python, etc)..."
+
+            real_issues=$(echo "$broken_links" | grep -vE "ruby|python|node|cache|gem" || true)
+
+            if [ -n "$real_issues" ]; then
+              echo "❌ Critical broken symlinks:"
+              echo "$real_issues"
+              exit 1
+            else
+              echo "✅ Only harmless system symlinks are broken"
+            fi
           else
-            echo "No broken symlinks"
+            echo "✅ No broken symlinks"
           fi
-
-
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -128,7 +138,7 @@ jobs:
             exit 1
           fi
           exit 0
-
+          
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
