@@ -94,6 +94,10 @@ jobs:
           fi
           exit 0
 
+      - name: Fix npm cache permissions before Playwright install (macOS)
+        if: runner.os == 'macOS'
+        run: sudo chown -R $(id -u):$(id -g) ~/.npm
+
       - name: Install Playwright
         working-directory: ./tests/web-app
         run: |
