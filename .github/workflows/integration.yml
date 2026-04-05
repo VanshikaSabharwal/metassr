@@ -90,6 +90,44 @@ jobs:
           fi
           exit 0
 
+      - name: Install Playwright
+        working-directory: ./tests/web-app
+        run: |
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start Server
+        working-directory: ./tests/web-app
+        shell: bash
+        run: |
+          npm run start:debug &
+          echo $! > server.pid
+
+          echo "Waiting for server..."
+
+          for i in {1..30}; do
+            if curl -fs http://localhost:8080 > /dev/null; then
+              echo "Server ready"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Server failed to start"
+          exit 1
+
+      - name: Debug server response (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          curl -v http://localhost:8080/ || true 
+
+      - name: Run Playwright test
+        working-directory: ./tests/web-app
+        shell: bash
+        run: node tests/playwright-test.js
+
+
       # TODO: Improve testing by checking if resulting HTML is correct
 
       # - name: Install Playwright
