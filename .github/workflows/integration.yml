@@ -106,7 +106,7 @@ jobs:
         working-directory: ./tests/web-app
         run: |
           npm install playwright
-          npx playwright install chromium
+          npx playwright install --with-deps chromium
 
       - name: Start Server
         working-directory: ./tests/web-app
