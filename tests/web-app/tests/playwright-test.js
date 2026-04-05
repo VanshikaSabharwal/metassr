@@ -41,15 +41,18 @@ async function testIndexPage() {
     await page.goto(BASE_URL);
     const html = await page.content();
 
+    // Normalize backslashes to forward slashes for cross-platform path checks
+    const normalizedHtml = html.replace(/\\/g, '/');
+
     await assert(html.includes('<title>My website</title>'), 'Has correct <title>');
     await assert(html.includes('lang="en"'), 'Has lang="en" attribute');
     await assert(html.includes('id="root"'), 'Has #root element');
     await assert(
-        html.includes('/dist/pages/index.js.js'),
+        normalizedHtml.includes('/dist/pages/index.js.js'),
         'Has page JS bundle reference'
     );
     await assert(
-        html.includes('/dist/pages/index.js.css'),
+        normalizedHtml.includes('/dist/pages/index.js.css'),
         'Has page CSS bundle reference'
     );
 
