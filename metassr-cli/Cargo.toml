@@ -14,7 +14,7 @@ metacall = "0.5.6"
 axum = "0.7.5"
 tokio = "1.37.0"
 tower-http = { version = "0.5.2", features = ["trace"] }
-tracing = "0.1.40"
+tracing = "0.1.40
 tracing-subscriber = { version = "0.3.18", features = ["fmt", "env-filter"] }
 
 logger = { path = "../crates/logger" }
@@ -24,4 +24,4 @@ metassr-create = { path = "../crates/metassr-create" }
 metassr-watcher = { path = "../crates/metassr-watcher" }
 
 [build-dependencies]
-metacall-sys = "0.1.4"
+metacall-sys = "0.1.5"
