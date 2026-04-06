@@ -59,9 +59,15 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Link MetaCall to standard search path (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sudo ln -sf /opt/homebrew/lib/libmetacalld.dylib /usr/local/lib/libmetacalld.dylib
+          sudo ln -sf /opt/homebrew/lib/libmetacall.dylib /usr/local/lib/libmetacall.dylib 2>/dev/null || true
+
       - name: Build (macOS)
         if: runner.os == 'macOS'
-        run: cargo build
+        run: cargo build -vv 2>&1 | tee /tmp/cargo-build.log; grep -i "metacall\|library\|search\|found\|warning" /tmp/cargo-build.log || true
 
       - name: Fix npm cache permissions (macOS only)
         if: matrix.os == 'macos-latest'
