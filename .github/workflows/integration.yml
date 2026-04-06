@@ -62,6 +62,7 @@ jobs:
       - name: Link MetaCall to standard search path (macOS)
         if: runner.os == 'macOS'
         run: |
+          sudo mkdir -p /usr/local/lib
           sudo ln -sf /opt/homebrew/lib/libmetacalld.dylib /usr/local/lib/libmetacalld.dylib
           sudo ln -sf /opt/homebrew/lib/libmetacall.dylib /usr/local/lib/libmetacall.dylib 2>/dev/null || true
 
